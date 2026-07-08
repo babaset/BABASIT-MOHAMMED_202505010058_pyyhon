@@ -1,0 +1,74 @@
+WEEK 7 - TUTORIAL 7
+FoodExpress Ordering System - Bug Investigation & Fix Report
+==============================================================
+
+1. BUG IDENTIFIED IN main.py
+-----------------------------
+Original code:
+    price = float(input("Price (RM): "))
+    quantity = int(input("Quantity: "))
+    total = price * quantity
+
+Problem:
+- The program directly converts user input to float/int without any
+  error handling. If a customer types a non-numeric value (e.g. "abc"
+  for price, or "two" for quantity), float()/int() raises a
+  ValueError and the program CRASHES instead of showing a friendly
+  message. This matches the customer complaint that "the ordering
+  system sometimes crashes or accepts invalid orders."
+- There was also no import statement connecting main.py to the
+  calculation logic in food_order.py, and the total calculation was
+  done inline instead of being validated through a dedicated,
+  testable function.
+- Negative prices or negative quantities were also accepted without
+  any check, which would silently produce a nonsensical (negative)
+  total instead of being flagged as invalid.
+
+2. FIX APPLIED
+---------------
+a) main.py
+   - Added: from food_order import food_order
+   - Wrapped the input() conversions in a try/except ValueError block
+     so non-numeric input no longer crashes the program; instead it
+     prints "Invalid input. Please enter numeric values for price and
+     quantity." and exits gracefully.
+   - Replaced the inline "price * quantity" calculation with a call
+     to food_order(price, quantity), which centralizes validation and
+     makes the logic reusable and testable.
+   - Added a check: if food_order() returns a string (an error
+     message such as "invalid price" or "invalid quantity"), it is
+     printed directly instead of being formatted as a currency total.
+
+b) food_order.py
+   - Implemented calculate logic as food_order(price, quantity).
+   - Validates that price is a positive int/float (not a bool, not
+     negative, not a non-numeric type) -> otherwise returns the
+     string "invalid price".
+   - Validates that quantity is a positive integer (not a bool, not
+     negative, not a non-integer type) -> otherwise returns the
+     string "invalid quantity".
+   - Returns price * quantity only when both inputs are valid.
+
+3. TESTING (pytest)
+--------------------
+File: test_food_order.py
+Six test cases were written and all PASS:
+   test_order1 -> food_order(10, 2)   == 20   (given)
+   test_order2 -> food_order(10, 3)   == 30
+   test_order3 -> food_order(20, 5)   == 100
+   test_order4 -> food_order(5, 2)    == 10
+   test_order5 -> food_order("abc",2) == "invalid price"
+   test_order6 -> food_order(10,"two")== "invalid quantity"
+
+Result:
+   ============================== 6 passed in 0.02s ===============================
+
+4. CONCLUSION
+--------------
+The root cause of the crashes was missing input validation in
+main.py combined with no reusable/testable calculation function.
+By introducing food_order() with explicit validation and wrapping
+user input conversion in a try/except block, the program now
+handles invalid customer input (non-numeric or negative values)
+gracefully instead of crashing, resolving the issue reported by
+customers.
